@@ -93,6 +93,7 @@ def train_epoch(model, loader, optimizer, criterion):
         torch.cuda.synchronize()
             
         loss_np = loss.detach().cpu().numpy()
+        print(loss_np)
         train_loss.append(loss_np)
         smooth_loss = sum(train_loss[-100:]) / min(len(train_loss), 100)
         bar.set_description('loss: %.5f, smth: %.5f' % (loss_np, smooth_loss))
