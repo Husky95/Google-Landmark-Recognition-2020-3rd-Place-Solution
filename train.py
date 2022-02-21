@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument("--local_rank", type=int,default=0)
     parser.add_argument('--enet-type', type=str, required=True)
     parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--num-workers', type=int, default=8)
+    parser.add_argument('--num-workers', type=int, default=2)
     parser.add_argument('--init-lr', type=float, default=1e-4)
     parser.add_argument('--n-epochs', type=int, default=15)
     parser.add_argument('--start-from-epoch', type=int, default=1)
@@ -93,7 +93,6 @@ def train_epoch(model, loader, optimizer, criterion):
         torch.cuda.synchronize()
             
         loss_np = loss.detach().cpu().numpy()
-        print(loss_np)
         train_loss.append(loss_np)
         smooth_loss = sum(train_loss[-100:]) / min(len(train_loss), 100)
         bar.set_description('loss: %.5f, smth: %.5f' % (loss_np, smooth_loss))
@@ -156,6 +155,8 @@ def main():
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]
     df_valid = df[df['fold'] == args.fold].reset_index(drop=True).query("index % 15==0")
+    print(df_train)
+    print(df_valid)
 
     dataset_train = LandmarkDataset(df_train, 'train', 'train', transform=transforms_train)
     dataset_valid = LandmarkDataset(df_valid, 'train', 'val', transform=transforms_val)
@@ -214,7 +215,7 @@ def main():
         #train_sampler = torch.utils.data.Sampler(dataset_train)
         #train_sampler.set_epoch(epoch)
         train_sampler = None 
-        train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=8,
+        train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=2,
                                                   shuffle=train_sampler is None, sampler=train_sampler, drop_last=True)        
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
