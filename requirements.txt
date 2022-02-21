@@ -1,5 +1,4 @@
 albumentations==0.4.6
-apex==0.1
 geffnet==0.9.8
 torch==1.6.0a0+9907a3e
 resnest==0.0.6b20201012
