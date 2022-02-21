@@ -67,15 +67,15 @@ def get_df(kernel_type, data_dir, train_step):
       cls_81313 = df.individual_id.unique()
       df_train = pd.read_csv('train.csv').set_index('individual_id').loc[cls_81313].reset_index()
         
-      df_train['filepath'] = df_train['image'].apply(lambda x: os.path.join(data_dir, f'{x}'))
-      df = df_train.merge(df, on=['image','individual_id'], how='left')
+    df_train['filepath'] = df_train['image'].apply(lambda x: os.path.join(data_dir, f'{x}'))
+    df = df_train.merge(df, on=['image','individual_id'], how='left')
 
-      landmark_id2idx = {landmark_id: idx for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
-      idx2landmark_id = {idx: landmark_id for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
-      df['individual_id'] = df['individual_id'].map(landmark_id2idx)
+    landmark_id2idx = {landmark_id: idx for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
+    idx2landmark_id = {idx: landmark_id for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
+    df['individual_id'] = df['individual_id'].map(landmark_id2idx)
 
-      out_dim = df.individual_id.nunique()
-      print(out_dim)
-      print(df)
+    out_dim = df.individual_id.nunique()
+    print(out_dim)
+    print(df)
       
-      return df, out_dim
+    return df, out_dim
