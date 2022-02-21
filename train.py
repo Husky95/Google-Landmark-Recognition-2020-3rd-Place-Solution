@@ -206,6 +206,8 @@ def main():
     gap_m_max = 0.
     print("epoch to train: " + str(args.n_epochs+1))
     print("local rank: " + str(args.local_rank) )
+    #model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
+
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
         
         model_file = os.path.join(args.model_dir, f'{epoch}_{args.kernel_type}_fold{args.fold}.pth')
