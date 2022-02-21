@@ -147,6 +147,8 @@ def main():
 
     # get adaptive margin
     tmp = np.sqrt(1 / np.sqrt(df['individual_id'].value_counts().sort_index().values))
+    print(f"tmp = {tmp}")
+
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
 
     # get augmentations
@@ -155,8 +157,6 @@ def main():
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]
     df_valid = df[df['fold'] == args.fold].reset_index(drop=True).query("index % 15==0")
-    print(df_train)
-    print(df_valid)
 
     dataset_train = LandmarkDataset(df_train, 'train', 'train', transform=transforms_train)
     dataset_valid = LandmarkDataset(df_valid, 'train', 'val', transform=transforms_val)
