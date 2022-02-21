@@ -20,7 +20,7 @@ class LandmarkDataset(Dataset):
 
     def __getitem__(self, index):
         row = self.csv.iloc[index]
-
+        #print(row.filepath)
         image = cv2.imread(row.filepath)[:,:,::-1]
 
         if self.transform is not None:
@@ -33,13 +33,13 @@ class LandmarkDataset(Dataset):
         if self.mode == 'test':
             return torch.tensor(image)
         else:
-            return torch.tensor(image), torch.tensor(row.landmark_id)
+            return torch.tensor(image), torch.tensor(row.individual_id)
 
 
 def get_transforms(image_size):
 
     transforms_train = albumentations.Compose([
-        albumentations.HorizontalFlip(p=0.5),
+        #albumentations.HorizontalFlip(p=0.5),
         albumentations.ImageCompression(quality_lower=99, quality_upper=100),
         albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=10, border_mode=0, p=0.7),
         albumentations.Resize(image_size, image_size),
@@ -57,21 +57,22 @@ def get_transforms(image_size):
 
 def get_df(kernel_type, data_dir, train_step):
 
+    data_dir = '../input/dolphin/train_images/'
     df = pd.read_csv('train_0.csv')
 
     if train_step == 0:
-        df_train = pd.read_csv(os.path.join(data_dir, 'train.csv')).drop(columns=['url'])
+      df_train = pd.read_csv('train.csv')
     else:
-        cls_81313 = df.landmark_id.unique()
-        df_train = pd.read_csv(os.path.join(data_dir, 'train.csv')).drop(columns=['url']).set_index('landmark_id').loc[cls_81313].reset_index()
+      cls_81313 = df.individual_id.unique()
+      df_train = pd.read_csv('train.csv').set_index('individual_id').loc[cls_81313].reset_index()
         
-    df_train['filepath'] = df_train['id'].apply(lambda x: os.path.join(data_dir, 'train', x[0], x[1], x[2], f'{x}.jpg'))
-    df = df_train.merge(df, on=['id','landmark_id'], how='left')
+      df_train['filepath'] = df_train['image'].apply(lambda x: os.path.join(data_dir, f'{x}'))
+      df = df_train.merge(df, on=['image','individual_id'], how='left')
 
-    landmark_id2idx = {landmark_id: idx for idx, landmark_id in enumerate(sorted(df['landmark_id'].unique()))}
-    idx2landmark_id = {idx: landmark_id for idx, landmark_id in enumerate(sorted(df['landmark_id'].unique()))}
-    df['landmark_id'] = df['landmark_id'].map(landmark_id2idx)
+      landmark_id2idx = {landmark_id: idx for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
+      idx2landmark_id = {idx: landmark_id for idx, landmark_id in enumerate(sorted(df['individual_id'].unique()))}
+      df['individual_id'] = df['individual_id'].map(landmark_id2idx)
 
-    out_dim = df.landmark_id.nunique()
-
-    return df, out_dim
+      out_dim = df.individual_id.nunique()
+      
+      return df, out_dim
