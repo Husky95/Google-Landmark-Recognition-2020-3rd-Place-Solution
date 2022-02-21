@@ -24,9 +24,9 @@ from torch.optim import lr_scheduler
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 
-import apex
-from apex import amp
-from apex.parallel import DistributedDataParallel
+#import apex
+#from apex import amp
+#from apex.parallel import DistributedDataParallel
 
 from dataset import LandmarkDataset, get_df, get_transforms
 from util import global_average_precision_score, GradualWarmupSchedulerV2
@@ -41,15 +41,15 @@ def parse_args():
     parser.add_argument('--data-dir', type=str, default='/raid/GLD2')
     parser.add_argument('--train-step', type=int, required=True)
     parser.add_argument('--image-size', type=int, required=True)
-    parser.add_argument("--local_rank", type=int)
+    parser.add_argument("--local_rank", type=int,default=0)
     parser.add_argument('--enet-type', type=str, required=True)
     parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--num-workers', type=int, default=32)
+    parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--init-lr', type=float, default=1e-4)
     parser.add_argument('--n-epochs', type=int, default=15)
     parser.add_argument('--start-from-epoch', type=int, default=1)
     parser.add_argument('--stop-at-epoch', type=int, default=999)
-    parser.add_argument('--use-amp', action='store_false')
+    #parser.add_argument('--use-amp', action='store_false')
     parser.add_argument('--DEBUG', action='store_true')
     parser.add_argument('--model-dir', type=str, default='./weights')
     parser.add_argument('--log-dir', type=str, default='./logs')
@@ -75,21 +75,20 @@ def train_epoch(model, loader, optimizer, criterion):
     train_loss = []
     bar = tqdm(loader)
     for (data, target) in bar:
-
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
 
-        if not args.use_amp:
-            logits_m = model(data)
-            loss = criterion(logits_m, target)
-            loss.backward()
-            optimizer.step()
-        else:
-            logits_m = model(data)
-            loss = criterion(logits_m, target)
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
+        #if not args.use_amp:
+        logits_m = model(data)
+        loss = criterion(logits_m, target)
+        loss.backward()
+        optimizer.step()
+        #else:
+            #logits_m = model(data)
+            #loss = criterion(logits_m, target)
+            #with amp.scale_loss(loss, optimizer) as scaled_loss:
+                #scaled_loss.backward()
+            #optimizer.step()
 
         torch.cuda.synchronize()
             
@@ -147,7 +146,7 @@ def main():
     print(f"out_dim = {out_dim}")
 
     # get adaptive margin
-    tmp = np.sqrt(1 / np.sqrt(df['landmark_id'].value_counts().sort_index().values))
+    tmp = np.sqrt(1 / np.sqrt(df['individual_id'].value_counts().sort_index().values))
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
 
     # get augmentations
@@ -164,7 +163,7 @@ def main():
     # model
     model = ModelClass(args.enet_type, out_dim=out_dim)
     model = model.cuda()
-    model = apex.parallel.convert_syncbn_model(model)
+    #model = apex.parallel.convert_syncbn_model(model)
 
     # loss func
     def criterion(logits_m, target):
@@ -174,8 +173,8 @@ def main():
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
-    if args.use_amp:
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+    #if args.use_amp:
+        #model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
 
     # load pretrained
     if len(args.load_from) > 0:
@@ -194,7 +193,7 @@ def main():
         import gc
         gc.collect()   
 
-    model = DistributedDataParallel(model, delay_allreduce=True)
+    #model = DistributedDataParallel(model, delay_allreduce=True)
     
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
@@ -203,15 +202,18 @@ def main():
     # train & valid loop
     gap_m_max = 0.
     model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
+    print("epoch to train: " + str(args.n_epochs+1))
+    print("local rank: " + str(args.local_rank) )
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
         print(time.ctime(), 'Epoch:', epoch)
         scheduler_warmup.step(epoch - 1)
 
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
-        train_sampler.set_epoch(epoch)
-
-        train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
+        #train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
+        #train_sampler = torch.utils.data.Sampler(dataset_train)
+        #train_sampler.set_epoch(epoch)
+        train_sampler = None 
+        train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=8,
                                                   shuffle=train_sampler is None, sampler=train_sampler, drop_last=True)        
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
@@ -260,8 +262,8 @@ if __name__ == '__main__':
 
     if args.CUDA_VISIBLE_DEVICES != '-1':
         torch.backends.cudnn.benchmark = True
-        torch.cuda.set_device(args.local_rank)
-        torch.distributed.init_process_group(backend='nccl', init_method='env://')
+        torch.cuda.set_device('cuda:0')
+        #torch.distributed.init_process_group(backend='nccl', init_method='env://')
         cudnn.benchmark = True
 
     main()
