@@ -204,10 +204,11 @@ def main():
 
     # train & valid loop
     gap_m_max = 0.
-    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
     print("epoch to train: " + str(args.n_epochs+1))
     print("local rank: " + str(args.local_rank) )
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
+        
+        model_file = os.path.join(args.model_dir, f'{epoch}_{args.kernel_type}_fold{args.fold}.pth')
 
         print(time.ctime(), 'Epoch:', epoch)
         scheduler_warmup.step(epoch - 1)
