@@ -75,7 +75,7 @@ def get_df(kernel_type, data_dir, train_step):
       df['individual_id'] = df['individual_id'].map(landmark_id2idx)
 
       out_dim = df.individual_id.nunique()
-      display(out_dim)
-      display(df)
+      print(out_dim)
+      print(df)
       
       return df, out_dim
