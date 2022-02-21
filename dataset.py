@@ -58,6 +58,7 @@ def get_transforms(image_size):
 def get_df(kernel_type, data_dir, train_step):
 
     #data_dir = '/kaggle/input/dolphin/train_images/'
+    print(data_dir)
     df = pd.read_csv('train_0.csv')
 
     if train_step == 0:
