@@ -150,6 +150,7 @@ def main():
     print(f"tmp = {tmp}")
 
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
+    print(f"margins = {margins}")
 
     # get augmentations
     transforms_train, transforms_val = get_transforms(args.image_size)
